@@ -218,6 +218,12 @@
         }
       }
 
+      &:nth-child(2) {
+        a {
+          margin-left: 6rem; /* ← 调整这个值，比如 20px, 30px, 2rem 等 */
+        }
+      }
+
       &:last-child {
         a {
           margin-right: 0;
