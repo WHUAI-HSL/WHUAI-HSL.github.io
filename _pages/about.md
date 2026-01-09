@@ -11,43 +11,47 @@ redirect_from:
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
 
 <style>
-  /* * 暴力隐藏原来的所有内容，只保留我们的新图层 
-   * 防止原来的滚动条和内容干扰
-   */
-  body > *:not(#apple-portal-root) {
-    display: none !important; 
+  /* =========================================
+     1. 核弹级重置 (确保覆盖原主题)
+     ========================================= */
+  /* 隐藏原主题的页眉页脚和侧边栏 */
+  .masthead, .page__footer, .sidebar, .page__title, .breadcrumbs, .page__meta {
+    display: none !important;
   }
   
-  body {
+  /* 强制页面背景全黑 */
+  body, html, .initial-content, #main, .page, .page__inner-wrap {
     background: #000 !important;
-    overflow: hidden !important; /* 暂时禁止body滚动，由我们的容器接管 */
+    overflow-x: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
-  /* * 核心容器：覆盖层 (Portal)
-   * 这是一个浮在一切之上的独立世界
+  /* * 核心容器：直接覆盖在一切之上 
+   * 不再使用 display:none 隐藏其他元素，而是直接盖住它们
    */
-  #apple-portal-root {
-    position: fixed;
+  #apple-safe-root {
+    position: absolute;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: #000;
-    z-index: 99999;
-    overflow-y: auto; /* 允许内部滚动 */
-    overflow-x: hidden;
+    width: 100%;
+    min-height: 100vh;
+    background-color: #000;
+    z-index: 99999; /* 层级极高 */
     font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
     color: #f5f5f7;
-    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
   }
 
-  /* --- 以下是 V6.0 的核心设计 --- */
-  
-  /* 通用 */
+  /* =========================================
+     2. 样式定义 (带有颜色保底)
+     ========================================= */
   *, *::before, *::after { box-sizing: border-box; }
   section { position: relative; width: 100%; overflow: hidden; }
 
-  /* 1. Hero Section */
+  /* Hero Section */
   #hero {
     height: 100vh;
     display: flex;
@@ -55,12 +59,13 @@ redirect_from:
     align-items: center;
     position: relative;
     z-index: 10;
+    background: #000; /* 保底色 */
   }
   .hero-bg-layer {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    /* 【已修正为 .png】引用首屏背景图 */
-    background: url('/images/hero-bg.png') no-repeat center center;
+    /* 引用背景图 */
+    background: #111 url('/images/hero-bg.png') no-repeat center center;
     background-size: cover;
     opacity: 0.6;
     transform: scale(1.1);
@@ -75,25 +80,30 @@ redirect_from:
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 20px;
-    opacity: 0; transform: translateY(50px);
+    /* 关键改动：默认可见，由JS控制隐藏，防止JS挂了白屏 */
+    opacity: 1; 
   }
   .hero-subtitle {
     font-size: clamp(24px, 3vw, 36px); color: #86868b; font-weight: 400; margin-bottom: 50px;
-    opacity: 0; transform: translateY(30px);
+    opacity: 1; 
   }
   .hero-scroll-indicator {
     position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-    opacity: 0; animation: bounce 2s infinite;
+    opacity: 1; 
+    animation: bounce 2s infinite;
   }
   .arrow-down { width: 30px; height: 30px; border-bottom: 2px solid #fff; border-right: 2px solid #fff; transform: rotate(45deg); }
 
-  /* 2. Scrollytelling Section */
+  /* Story Section */
   #story-section {
     position: relative;
     background: #000;
     display: flex;
-    height: 300vh; /* 3倍屏高用于滚动叙事 */
+    /* 如果是手机端，高度自动；PC端300vh */
+    min-height: 100vh; 
   }
+  @media (min-width: 1025px) { #story-section { height: 300vh; } }
+  
   .story-text-col { width: 50%; position: relative; z-index: 5; padding: 0 5%; }
   .story-block {
     height: 100vh; display: flex; flex-direction: column; justify-content: center;
@@ -106,8 +116,9 @@ redirect_from:
 
   .story-visual-col {
     width: 50%; height: 100vh;
-    position: sticky; top: 0; /* 这里的 sticky 在 portal 中会生效 */
+    position: sticky; top: 0;
     display: flex; justify-content: center; align-items: center; overflow: hidden;
+    background: #000; /* 保底 */
   }
   .visual-wrapper { position: relative; width: 80%; height: 80%; }
   .visual-img {
@@ -115,17 +126,14 @@ redirect_from:
     object-fit: contain; opacity: 0; transform: scale(0.8);
     transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  /* 第一张图 */
   .visual-img.v1 { opacity: 1; transform: scale(1); background-image: url('/images/Robot_1.png'); background-size: contain; background-repeat: no-repeat; background-position: center; }
-  /* 第二张图 (爆炸图，确保你也上传了这个 png) */
   .visual-img.v2 { background-image: url('/images/robot-explode.png'); background-size: contain; background-repeat: no-repeat; background-position: center; filter: contrast(1.2); }
-  /* 如果没有爆炸图，这段代码会让第二张图显示为数据可视化圆环，防止空白 */
   .visual-img.v3 { 
     background: radial-gradient(circle, rgba(41,151,255,0.2) 0%, rgba(0,0,0,0) 70%);
     border: 1px solid rgba(41,151,255,0.5); border-radius: 50%; box-shadow: 0 0 50px #2997ff; 
   }
 
-  /* 3. Bento Grid Section */
+  /* Bento Grid */
   #grid-section { background: #050505; padding: 150px 20px; position: relative; }
   .bento-header { text-align: center; margin-bottom: 100px; }
   .bento-h2 { font-size: 80px; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
@@ -152,14 +160,14 @@ redirect_from:
   .chart-wrapper { display: flex; align-items: flex-end; gap: 10px; height: 200px; margin-top: auto; }
   .chart-bar { flex: 1; background: #222; border-radius: 8px 8px 0 0; height: 0; transition: height 1.5s cubic-bezier(0.22, 1, 0.36, 1); }
 
-  /* 4. Vision Section */
+  /* Vision Section */
   #vision-section {
     height: 120vh; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center;
+    background: #000;
   }
   .vision-bg {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    /* 【已修正为 .png】引用愿景背景图 */
-    background: url('/images/vision-bg.png') no-repeat center center;
+    background: #111 url('/images/vision-bg.png') no-repeat center center;
     background-size: cover; z-index: 1; transform: scale(1.5);
   }
   .vision-overlay {
@@ -167,7 +175,7 @@ redirect_from:
     background: linear-gradient(to bottom, #000 0%, transparent 20%, transparent 80%, #000 100%); z-index: 2;
   }
   .vision-text { position: relative; z-index: 3; text-align: center; mix-blend-mode: overlay; }
-  .vision-big { font-size: 20vw; font-weight: 900; color: #fff; line-height: 0.8; opacity: 0; }
+  .vision-big { font-size: 20vw; font-weight: 900; color: #fff; line-height: 0.8; opacity: 1; }
 
   @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateX(-50%) translateY(0);} 40% {transform: translateX(-50%) translateY(-10px);} 60% {transform: translateX(-50%) translateY(-5px);} }
 
@@ -181,7 +189,7 @@ redirect_from:
   }
 </style>
 
-<div id="apple-portal-root">
+<div id="apple-safe-root">
 
   <section id="hero">
     <div class="hero-bg-layer"></div>
@@ -262,19 +270,18 @@ redirect_from:
 
 <script>
 window.addEventListener('load', () => {
-  // 1. 搬运工：将我们的 Portal 移到 Body 最外层，打破所有布局限制
-  const portal = document.getElementById('apple-portal-root');
-  if (portal) {
-    document.body.appendChild(portal);
+  // 安全检查：如果 GSAP 没加载，直接退出，保持静态页面显示
+  if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
+    console.warn('GSAP failed to load. Falling back to static mode.');
+    return; 
   }
 
-  // 2. 注册 GSAP 插件
+  // 1. 初始化 GSAP
   gsap.registerPlugin(ScrollTrigger);
-
-  // 告诉 ScrollTrigger 我们的滚动容器是 portal，而不是 body
-  ScrollTrigger.defaults({
-    scroller: "#apple-portal-root" 
-  });
+  
+  // 2. 只有JS加载成功了，才把初始透明度设为0，准备开始动画
+  // 这样如果JS没加载，用户至少能看到静态内容
+  gsap.set(".hero-title, .hero-subtitle, .hero-scroll-indicator, .vision-big", { opacity: 0 });
 
   // Hero 动画
   const tlHero = gsap.timeline();
@@ -288,12 +295,15 @@ window.addEventListener('load', () => {
   });
 
   // Story 动画 (Pinning)
-  ScrollTrigger.create({
-    trigger: "#story-section",
-    start: "top top",
-    end: "bottom bottom",
-    pin: ".story-visual-col",
-  });
+  // 仅在非移动端启用 Pinning
+  if (window.innerWidth > 1024) {
+    ScrollTrigger.create({
+      trigger: "#story-section",
+      start: "top top",
+      end: "bottom bottom",
+      pin: ".story-visual-col",
+    });
+  }
 
   // Story 场景切换
   const storyAnims = [
@@ -311,7 +321,7 @@ window.addEventListener('load', () => {
         onEnter: () => {
           gsap.to(scene.id, {opacity: 1});
           gsap.to(scene.img, {opacity: 1, scale: 1});
-          if(i > 0) gsap.to(storyAnims[i-1].img, {opacity: 0}); // 隐藏上一个
+          if(i > 0) gsap.to(storyAnims[i-1].img, {opacity: 0}); 
         },
         onLeave: () => gsap.to(scene.id, {opacity: 0.3}),
         onEnterBack: () => {
