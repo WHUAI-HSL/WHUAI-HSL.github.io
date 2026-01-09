@@ -7,262 +7,340 @@ redirect_from:
   - /about.html
 ---
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
 <style>
-  /* =========================================
-     1. 【核心修复】暴力越狱代码
-     这部分代码专门用来破坏模板原本的宽度限制
-     ========================================= */
+  /* * 暴力隐藏原来的所有内容，只保留我们的新图层 
+   * 防止原来的滚动条和内容干扰
+   */
+  body > *:not(#apple-portal-root) {
+    display: none !important; 
+  }
   
-  /* 强制所有父级容器撑开到 100% 宽度 */
-  body, html, 
-  .initial-content, 
-  #main, 
-  .page, 
-  .page__inner-wrap, 
-  .archive,
-  .wrapper {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow-x: hidden !important; /* 允许横向内容存在，但隐藏滚动条 */
+  body {
+    background: #000 !important;
+    overflow: hidden !important; /* 暂时禁止body滚动，由我们的容器接管 */
   }
 
-  /* 隐藏可能存在的默认边距 */
-  .page__content {
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-  }
-
-  /* 隐藏原来模板的标题 */
-  .page__title, .breadcrumbs { display: none !important; }
-
-  /* =========================================
-     2. Apple 风格核心设计
-     ========================================= */
-  
-  /* 全局黑色背景 */
-  body { 
-    background-color: #000 !important; 
+  /* * 核心容器：覆盖层 (Portal)
+   * 这是一个浮在一切之上的独立世界
+   */
+  #apple-portal-root {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    z-index: 99999;
+    overflow-y: auto; /* 允许内部滚动 */
+    overflow-x: hidden;
     font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
     color: #f5f5f7;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* 通用全屏容器 */
-  section {
-    width: 100vw; /* 强制视口宽度 */
-    position: relative;
-    left: 50%;
-    right: 50%;
-    margin-left: -50vw; /* 经典的 CSS 居中破局法 */
-    margin-right: -50vw;
-    overflow: hidden;
-    box-sizing: border-box;
-  }
+  /* --- 以下是 V6.0 的核心设计 --- */
+  
+  /* 通用 */
+  *, *::before, *::after { box-sizing: border-box; }
+  section { position: relative; width: 100%; overflow: hidden; }
 
-  /* --- Hero 首屏 --- */
+  /* 1. Hero Section */
   #hero {
     height: 100vh;
     display: flex;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
-    /* 这里使用了你上传的深色背景图，如果没有就用纯黑兜底 */
-    background: #000 url('/images/dark-bg.png') no-repeat center center;
+    align-items: center;
+    position: relative;
+    z-index: 10;
+  }
+  .hero-bg-layer {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    /* 【已修正为 .png】引用首屏背景图 */
+    background: url('/images/hero-bg.png') no-repeat center center;
     background-size: cover;
-    text-align: center;
-    padding: 0 20px;
+    opacity: 0.6;
+    transform: scale(1.1);
   }
-  
-  .hero-content { 
-    z-index: 2; 
-    position: relative; 
-    width: 100%; 
-    max-width: 1400px; /* 内容最大宽度，但背景是全屏的 */
-  }
-  
+  .hero-content { position: relative; z-index: 2; text-align: center; padding: 0 20px; }
   .hero-title {
-    font-size: clamp(48px, 6vw, 100px); /* 响应式字体，防止手机上爆开 */
+    font-size: clamp(60px, 10vw, 120px);
     font-weight: 700;
-    background: linear-gradient(180deg, #fff, #888);
+    line-height: 1.0;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #fff 0%, #a1a1a6 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin: 0 auto 20px;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-    opacity: 0;
-    animation: fadeUp 1s 0.2s forwards;
+    margin-bottom: 20px;
+    opacity: 0; transform: translateY(50px);
   }
-
   .hero-subtitle {
-    font-size: clamp(18px, 2vw, 28px);
-    color: #a1a1a6;
-    margin-bottom: 40px;
-    font-weight: 400;
-    opacity: 0;
-    animation: fadeUp 1s 0.5s forwards;
+    font-size: clamp(24px, 3vw, 36px); color: #86868b; font-weight: 400; margin-bottom: 50px;
+    opacity: 0; transform: translateY(30px);
   }
-
-  .cta-btn {
-    padding: 14px 30px;
-    background: #2997ff;
-    color: white !important;
-    border-radius: 30px;
-    font-size: 18px;
-    text-decoration: none;
-    display: inline-block;
-    transition: all 0.3s ease;
-    opacity: 0;
-    animation: fadeUp 1s 0.8s forwards;
+  .hero-scroll-indicator {
+    position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+    opacity: 0; animation: bounce 2s infinite;
   }
-  .cta-btn:hover { background: #007aff; transform: scale(1.05); }
+  .arrow-down { width: 30px; height: 30px; border-bottom: 2px solid #fff; border-right: 2px solid #fff; transform: rotate(45deg); }
 
-  /* 机器人悬浮 */
-  .robot-float {
-    margin-top: 40px;
-    width: 100%;
-    height: 45vh; /* 占据屏幕高度的45% */
-    background: url('/images/Robot_1.png') no-repeat center top;
-    background-size: contain;
-    animation: floatMove 4s infinite alternate ease-in-out;
-  }
-
-  /* --- Bento Grid (修正版) --- */
-  #bento {
+  /* 2. Scrollytelling Section */
+  #story-section {
+    position: relative;
     background: #000;
-    padding: 100px 20px;
     display: flex;
-    justify-content: center;
+    height: 300vh; /* 3倍屏高用于滚动叙事 */
   }
-  
-  .grid-wrapper {
-    width: 100%;
-    max-width: 1400px; /* 限制内容宽度，不限制背景 */
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); /* 自动换行布局 */
-    gap: 25px;
+  .story-text-col { width: 50%; position: relative; z-index: 5; padding: 0 5%; }
+  .story-block {
+    height: 100vh; display: flex; flex-direction: column; justify-content: center;
+    opacity: 0.3; transition: opacity 0.5s;
+  }
+  .story-block.active { opacity: 1; }
+  .story-eyebrow { font-size: 18px; color: #2997ff; font-weight: 700; text-transform: uppercase; margin-bottom: 10px; }
+  .story-heading { font-size: 56px; font-weight: 700; margin-bottom: 20px; color: #fff; }
+  .story-p { font-size: 24px; color: #86868b; line-height: 1.6; }
+
+  .story-visual-col {
+    width: 50%; height: 100vh;
+    position: sticky; top: 0; /* 这里的 sticky 在 portal 中会生效 */
+    display: flex; justify-content: center; align-items: center; overflow: hidden;
+  }
+  .visual-wrapper { position: relative; width: 80%; height: 80%; }
+  .visual-img {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: contain; opacity: 0; transform: scale(0.8);
+    transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  /* 第一张图 */
+  .visual-img.v1 { opacity: 1; transform: scale(1); background-image: url('/images/Robot_1.png'); background-size: contain; background-repeat: no-repeat; background-position: center; }
+  /* 第二张图 (爆炸图，确保你也上传了这个 png) */
+  .visual-img.v2 { background-image: url('/images/robot-explode.png'); background-size: contain; background-repeat: no-repeat; background-position: center; filter: contrast(1.2); }
+  /* 如果没有爆炸图，这段代码会让第二张图显示为数据可视化圆环，防止空白 */
+  .visual-img.v3 { 
+    background: radial-gradient(circle, rgba(41,151,255,0.2) 0%, rgba(0,0,0,0) 70%);
+    border: 1px solid rgba(41,151,255,0.5); border-radius: 50%; box-shadow: 0 0 50px #2997ff; 
   }
 
-  /* 卡片基础样式 */
-  .card {
-    background: #1c1c1e;
-    border-radius: 30px;
-    padding: 40px;
-    position: relative;
-    min-height: 420px;
-    border: 1px solid #333;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    transition: transform 0.1s;
-    overflow: hidden; /* 关键：防止内部元素溢出遮挡 */
+  /* 3. Bento Grid Section */
+  #grid-section { background: #050505; padding: 150px 20px; position: relative; }
+  .bento-header { text-align: center; margin-bottom: 100px; }
+  .bento-h2 { font-size: 80px; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+  .bento-container {
+    display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 500px);
+    gap: 30px; max-width: 1400px; margin: 0 auto;
   }
-  
-  .card:hover { border-color: #555; z-index: 5; }
-  
-  /* 宽卡片 */
-  .card-wide { grid-column: span 2; }
-  @media (max-width: 900px) { .card-wide { grid-column: span 1; } }
-
-  .card-label { font-size: 13px; color: #86868b; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 15px; }
-  .card-title { font-size: 42px; font-weight: 700; color: #f5f5f7; line-height: 1.1; margin: 0 0 15px 0; }
-  .card-desc { font-size: 18px; color: #a1a1a6; line-height: 1.5; }
-
-  /* --- 交互图表 (柱状图) --- */
-  .chart-box {
-    display: flex;
-    align-items: flex-end;
-    gap: 12px;
-    height: 180px;
-    margin-top: 20px;
-    padding-bottom: 10px;
+  .bento-item {
+    background: #111; border-radius: 40px; padding: 50px; position: relative;
+    overflow: hidden; border: 1px solid #222; transition: border-color 0.3s;
   }
-  .bar {
-    flex: 1;
-    background: linear-gradient(180deg, #2997ff, #007aff);
-    border-radius: 6px 6px 0 0;
-    height: 10%; /* 默认高度 */
-    transition: height 1s cubic-bezier(0.34, 1.56, 0.64, 1);
-    position: relative;
-    opacity: 0.8;
-  }
-  /* 鼠标放上去时的效果：生长 */
-  .card:hover .bar { height: var(--h) !important; opacity: 1; }
+  .bento-item:hover { border-color: #444; }
+  .span-2 { grid-column: span 2; } .span-row-2 { grid-row: span 2; }
   
-  /* --- 动画 --- */
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes floatMove { from { transform: translateY(0); } to { transform: translateY(-20px); } }
+  .bento-bg-anim {
+    position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0) 50%);
+    transform: scale(0.8); opacity: 0; transition: opacity 0.5s;
+  }
+  .bento-item:hover .bento-bg-anim { opacity: 1; }
+  .bento-content { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+  .bento-label { font-size: 14px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 2px; }
+  .bento-title { font-size: 48px; font-weight: 600; color: #fff; margin-top: 10px; }
+  .chart-wrapper { display: flex; align-items: flex-end; gap: 10px; height: 200px; margin-top: auto; }
+  .chart-bar { flex: 1; background: #222; border-radius: 8px 8px 0 0; height: 0; transition: height 1.5s cubic-bezier(0.22, 1, 0.36, 1); }
 
+  /* 4. Vision Section */
+  #vision-section {
+    height: 120vh; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center;
+  }
+  .vision-bg {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    /* 【已修正为 .png】引用愿景背景图 */
+    background: url('/images/vision-bg.png') no-repeat center center;
+    background-size: cover; z-index: 1; transform: scale(1.5);
+  }
+  .vision-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(to bottom, #000 0%, transparent 20%, transparent 80%, #000 100%); z-index: 2;
+  }
+  .vision-text { position: relative; z-index: 3; text-align: center; mix-blend-mode: overlay; }
+  .vision-big { font-size: 20vw; font-weight: 900; color: #fff; line-height: 0.8; opacity: 0; }
+
+  @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateX(-50%) translateY(0);} 40% {transform: translateX(-50%) translateY(-10px);} 60% {transform: translateX(-50%) translateY(-5px);} }
+
+  @media (max-width: 1024px) {
+    .bento-container { grid-template-columns: 1fr; grid-template-rows: auto; }
+    .span-2, .span-row-2 { grid-column: span 1; grid-row: span 1; }
+    #story-section { height: auto; flex-direction: column; }
+    .story-text-col, .story-visual-col { width: 100%; }
+    .story-visual-col { height: 50vh; position: relative; }
+    .story-block { height: auto; margin-bottom: 80px; opacity: 1; }
+  }
 </style>
 
+<div id="apple-portal-root">
+
+  <section id="hero">
+    <div class="hero-bg-layer"></div>
+    <div class="hero-content">
+      <h1 class="hero-title">WHUAI · INVIC</h1>
+      <p class="hero-subtitle">Redefining the boundaries of autonomous intelligence.</p>
+    </div>
+    <div class="hero-scroll-indicator"><div class="arrow-down"></div></div>
+  </section>
+
+  <section id="story-section">
+    <div class="story-text-col">
+      <div class="story-block" id="story-1">
+        <div class="story-eyebrow">The Foundation</div>
+        <h2 class="story-heading">Engineered for<br>Perfection.</h2>
+        <p class="story-p">Every curve of the robot is designed with aerodynamics in mind. The composite shell provides industrial-grade protection.</p>
+      </div>
+      <div class="story-block" id="story-2">
+        <div class="story-eyebrow">Inner Core</div>
+        <h2 class="story-heading">Neural Processing<br>Unleashed.</h2>
+        <p class="story-p">Powered by NVIDIA Jetson modules, our proprietary algorithm processes visual data at 120fps.</p>
+      </div>
+      <div class="story-block" id="story-3">
+        <div class="story-eyebrow">The System</div>
+        <h2 class="story-heading">Hive Mind<br>Intelligence.</h2>
+        <p class="story-p">It's not just one robot. It's a synchronized legion. Our swarm communication protocol allows seamless data sharing.</p>
+      </div>
+    </div>
+    <div class="story-visual-col">
+      <div class="visual-wrapper">
+        <div class="visual-img v1"></div>
+        <div class="visual-img v2"></div>
+        <div class="visual-img v3"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="grid-section">
+    <div class="bento-header"><h2 class="bento-h2">Unrivaled Performance.</h2></div>
+    <div class="bento-container">
+      <div class="bento-item span-2">
+        <div class="bento-bg-anim"></div>
+        <div class="bento-content">
+          <div><div class="bento-label">Growth</div><div class="bento-title">National Dominance.</div></div>
+          <div class="chart-wrapper">
+            <div class="chart-bar" style="background:#333; height:30%"></div>
+            <div class="chart-bar" style="background:#444; height:50%"></div>
+            <div class="chart-bar" style="background:#555; height:70%"></div>
+            <div class="chart-bar" style="background:#2997ff; height:100%; box-shadow: 0 0 20px #2997ff;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="bento-item span-row-2">
+        <div class="bento-content">
+          <div class="bento-label">The Team</div><div class="bento-title">Elite<br>Squad.</div>
+          <div style="margin-top:20px; font-size:18px; color:#888;">Six minds. Four disciplines.<br><span style="color:#fff">EE · CS · RS · Automation</span></div>
+        </div>
+      </div>
+      <div class="bento-item">
+        <div class="bento-content">
+          <div class="bento-label">Rank</div><div class="bento-title" style="font-size:80px; color:#2997ff;">#1</div><div style="color:#666">CRAIC National First Prize</div>
+        </div>
+      </div>
+      <div class="bento-item">
+        <div class="bento-content">
+          <div class="bento-label">Speed</div><div class="bento-title">2ms</div><div style="color:#666">Ultra-low Latency Control Loop</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="vision-section">
+    <div class="vision-bg"></div><div class="vision-overlay"></div>
+    <div class="vision-text"><div class="vision-big">THE<br>FUTURE</div></div>
+  </section>
+
+</div>
+
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-  // 3D 卡片倾斜逻辑
-  const cards = document.querySelectorAll('.card');
-  cards.forEach(card => {
-    card.addEventListener('mousemove', (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      card.style.transform = `perspective(1000px) rotateX(${(y - rect.height/2) / -20}deg) rotateY(${(x - rect.width/2) / 20}deg) scale(1.02)`;
-    });
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
+window.addEventListener('load', () => {
+  // 1. 搬运工：将我们的 Portal 移到 Body 最外层，打破所有布局限制
+  const portal = document.getElementById('apple-portal-root');
+  if (portal) {
+    document.body.appendChild(portal);
+  }
+
+  // 2. 注册 GSAP 插件
+  gsap.registerPlugin(ScrollTrigger);
+
+  // 告诉 ScrollTrigger 我们的滚动容器是 portal，而不是 body
+  ScrollTrigger.defaults({
+    scroller: "#apple-portal-root" 
+  });
+
+  // Hero 动画
+  const tlHero = gsap.timeline();
+  tlHero.to(".hero-title", { opacity: 1, y: 0, duration: 1.5, ease: "power4.out" })
+        .to(".hero-subtitle", { opacity: 1, y: 0, duration: 1.5, ease: "power4.out" }, "-=1")
+        .to(".hero-scroll-indicator", { opacity: 1, duration: 1 }, "-=0.5");
+
+  gsap.to(".hero-bg-layer", {
+    yPercent: 30, ease: "none",
+    scrollTrigger: { trigger: "#hero", start: "top top", end: "bottom top", scrub: true }
+  });
+
+  // Story 动画 (Pinning)
+  ScrollTrigger.create({
+    trigger: "#story-section",
+    start: "top top",
+    end: "bottom bottom",
+    pin: ".story-visual-col",
+  });
+
+  // Story 场景切换
+  const storyAnims = [
+    { id: "#story-1", img: ".v1", next: ".v2" },
+    { id: "#story-2", img: ".v2", next: ".v3" },
+    { id: "#story-3", img: ".v3", next: null }
+  ];
+
+  storyAnims.forEach((scene, i) => {
+    gsap.to(scene.img, {
+      scrollTrigger: {
+        trigger: scene.id,
+        start: "top center",
+        end: "bottom center",
+        onEnter: () => {
+          gsap.to(scene.id, {opacity: 1});
+          gsap.to(scene.img, {opacity: 1, scale: 1});
+          if(i > 0) gsap.to(storyAnims[i-1].img, {opacity: 0}); // 隐藏上一个
+        },
+        onLeave: () => gsap.to(scene.id, {opacity: 0.3}),
+        onEnterBack: () => {
+          gsap.to(scene.id, {opacity: 1});
+          gsap.to(scene.img, {opacity: 1, scale: 1});
+          if(scene.next) gsap.to(scene.next, {opacity: 0});
+        }
+      }
     });
   });
+
+  // Bento 柱状图
+  gsap.utils.toArray(".chart-bar").forEach(bar => {
+    gsap.from(bar, {
+      height: 0, duration: 1.5, ease: "power3.out",
+      scrollTrigger: { trigger: "#grid-section", start: "top 70%" }
+    });
+  });
+
+  // Vision 动画
+  gsap.to(".vision-big", {
+    opacity: 1, scale: 1,
+    scrollTrigger: { trigger: "#vision-section", start: "top 80%", end: "center center", scrub: 1 }
+  });
+  gsap.to(".vision-bg", {
+    scale: 1,
+    scrollTrigger: { trigger: "#vision-section", start: "top bottom", end: "bottom top", scrub: true }
+  });
+  
+  ScrollTrigger.refresh();
 });
 </script>
-
-<section id="hero">
-  <div class="hero-content">
-    <h1 class="hero-title">WHUAI · INVIC</h1>
-    <p class="hero-subtitle">Redefining the Future of RoboCup.</p>
-    <a href="#bento" class="cta-btn">View Highlights</a>
-    <div class="robot-float"></div>
-  </div>
-</section>
-
-<section id="bento">
-  <div class="grid-wrapper">
-    
-    <div class="card">
-      <div>
-        <span class="card-label">The Team</span>
-        <h3 class="card-title">Interdisciplinary<br>Powerhouse.</h3>
-        <p class="card-desc">Elite students from EE, CS, Robotics, and Surveying schools.</p>
-      </div>
-    </div>
-
-    <div class="card card-wide">
-      <div>
-        <span class="card-label">Performance</span>
-        <h3 class="card-title">Domination on Field.</h3>
-        <p class="card-desc">Consistent National First Prizes.</p>
-      </div>
-      
-      <div class="chart-box">
-        <div class="bar" style="--h: 40%"></div>
-        <div class="bar" style="--h: 60%"></div>
-        <div class="bar" style="--h: 80%"></div>
-        <div class="bar" style="--h: 100%"></div> </div>
-    </div>
-
-    <div class="card">
-      <div>
-        <span class="card-label">Our Spirit</span>
-        <h3 class="card-title">Self-reliance &<br>Innovation.</h3>
-        <p class="card-desc">Overcoming limits through seamless collaboration.</p>
-      </div>
-    </div>
-
-    <div class="card card-wide">
-      <div>
-        <span class="card-label">Vision</span>
-        <h3 class="card-title">Beyond the Game.</h3>
-        <p class="card-desc">Advancing general purpose robotics intelligence.</p>
-      </div>
-    </div>
-
-  </div>
-</section>
